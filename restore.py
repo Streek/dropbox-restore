@@ -2,8 +2,8 @@
 import sys, os, dropbox, time
 from datetime import datetime
 
-APP_KEY = 'hacwza866qep9o6'   # INSERT APP_KEY HERE
-APP_SECRET = 'kgipko61g58n6uc'     # INSERT APP_SECRET HERE
+APP_KEY = 'uaoaj0sx4g4sc92'   # INSERT APP_KEY HERE
+APP_SECRET = 'nwq97pj14okf5qk'     # INSERT APP_SECRET HERE
 DELAY = 0.2 # delay between each file (try to stay under API rate limits)
 
 HELP_MESSAGE = \
@@ -24,10 +24,10 @@ def authorize():
     print('1. Go to: ' + authorize_url)
     print('2. Click "Allow" (you might have to log in first)')
     print('3. Copy the authorization code.')
-    try:
-        input = raw_input
-    except NameError:
-        pass
+    # try:
+    #     input = raw_input
+    # except NameError:
+    #     pass
     code = input("Enter the authorization code here: ").strip()
     access_token, user_id = flow.finish(code)
     return access_token
@@ -50,13 +50,13 @@ def parse_date(s):
 
 
 def restore_file(client, path, cutoff_datetime, is_deleted, verbose=False):
-    revisions = client.revisions(path.encode('utf8'))
+    revisions = client.revisions(path)
     revision_dict = dict((parse_date(r['modified']), r) for r in revisions)
 
     # skip if current revision is the same as it was at the cutoff
     if max(revision_dict.keys()) < cutoff_datetime:
         if verbose:
-            print(path.encode('utf8') + ' SKIP')
+            print(path + ' SKIP')
         return
 
     # look for the most recent revision before the cutoff
@@ -66,20 +66,20 @@ def restore_file(client, path, cutoff_datetime, is_deleted, verbose=False):
         modtime = max(pre_cutoff_modtimes)
         rev = revision_dict[modtime]['rev']
         if verbose:
-            print(path.encode('utf8') + ' ' + str(modtime))
-        client.restore(path.encode('utf8'), rev)
+            print(path + ' ' + str(modtime))
+        client.restore(path, rev)
     else:   # there were no revisions before the cutoff, so delete
         if verbose:
-            print(path.encode('utf8') + ' ' + ('SKIP' if is_deleted else 'DELETE'))
+            print(path + ' ' + ('SKIP' if is_deleted else 'DELETE'))
         if not is_deleted:
-            client.file_delete(path.encode('utf8'))
+            client.file_delete(path)
 
 
 def restore_folder(client, path, cutoff_datetime, verbose=False):
     if verbose:
-        print('Restoring folder: ' + path.encode('utf8'))
+        print('Restoring folder: ' + path)
     try:
-        folder = client.metadata(path.encode('utf8'), list=True,
+        folder = client.metadata(path, list=True,
                                  include_deleted=True)
     except dropbox.rest.ErrorResponse as e:
         print(str(e))
@@ -99,7 +99,7 @@ def main():
         usage = 'usage: {0} ROOTPATH YYYY-MM-DD\n{1}'
         sys.exit(usage.format(sys.argv[0], HELP_MESSAGE))
     root_path_encoded, cutoff = sys.argv[1:]
-    root_path = root_path_encoded.decode(sys.stdin.encoding)
+    root_path = root_path_encoded#.decode(sys.stdin.encoding)
     cutoff_datetime = datetime(*map(int, cutoff.split('-')))
     if (datetime.utcnow() - cutoff_datetime).days >= 30:
         sys.exit(HISTORY_WARNING)
